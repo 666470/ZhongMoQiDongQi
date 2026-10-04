@@ -1,0 +1,19 @@
+{
+	"build": {
+		"beforeBuildCommand": "pnpm turbo run build --filter=@modrinth/app-frontend && cargo build --release --package axolotl-installer-ui"
+	},
+	"bundle": {
+		"targets": ["nsis"],
+		"windows": {
+			"nsis": {
+				"installMode": "currentUser",
+				"languages": ["SimpChinese", "English"],
+				"template": "./nsis/installer.nsi",
+				"installerHooks": "./nsis/hooks.nsi",
+				"installerIcon": "./icons/icon.ico",
+				"sidebarImage": "./nsis/assets/sidebar.bmp",
+				"headerImage": "./nsis/assets/header.bmp"
+			}
+		}
+	}
+}
