@@ -55,6 +55,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # git on Windows does not record the executable bit, so the wrapper can
+      # arrive without it and app-lib's build script then dies with
+      # "Failed to wait on Gradle build: Permission denied".
+      - name: Make the Gradle wrapper executable
+        run: chmod +x packages/app-lib/java/gradlew
+
+      - name: Show the JDKs Gradle can pick from
+        run: /usr/libexec/java_home -V 2>&1 || true
+
       - name: Build the universal bundle
         run: pnpm --filter @modrinth/app tauri build --target universal-apple-darwin
 
