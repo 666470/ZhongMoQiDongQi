@@ -1,0 +1,65 @@
+name: Build macOS
+
+# Manual only. This repository has no upstream release pipeline, and the goal
+# here is one reproducible unsigned macOS bundle to hand to testers.
+#
+# The output is unsigned and not notarized, so macOS quarantines it on first
+# open. Testers clear that with the command in the run summary.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: macOS universal (unsigned)
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      SQLX_OFFLINE: 'true'
+      # The Blockbench skin editor lives in a private submodule this checkout
+      # cannot fetch. The bundle reuses the resources committed under
+      # apps/app/resources/blockbench-skin instead.
+      AXOLOTL_SKIP_BLOCKBENCH_BUILD: '1'
+      # Lets the DMG bundler run on a runner without a GUI session.
+      TAURI_BUNDLER_DMG_IGNORE_CI: 'true'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@008330803749db0355799c700092d9a85fd074e9 # v6.0.9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          shared-key: terminus-macos-unsigned
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the universal bundle
+        run: pnpm --filter @modrinth/app tauri build --target universal-apple-darwin
+
+      - name: List what was produced
+        run: find target/universal-apple-darwin/release/bundle -maxdepth 3
+
+      - name: Upload the DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: terminus-macos-universal-unsigned
+          path: target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+          retention-days: 30
