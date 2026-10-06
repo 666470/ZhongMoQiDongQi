@@ -7,9 +7,14 @@ name: Build macOS
 # open. Testers clear that with the command in the run summary.
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release to attach the DMG to. Leave empty to only keep the build artifact.
+        required: false
+        default: v1.9.11
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   macos:
@@ -53,13 +58,65 @@ jobs:
       - name: Build the universal bundle
         run: pnpm --filter @modrinth/app tauri build --target universal-apple-darwin
 
-      - name: List what was produced
-        run: find target/universal-apple-darwin/release/bundle -maxdepth 3
+      # A bundle named "universal" is not proof that both slices are in it, so
+      # check the Mach-O header before shipping it.
+      - name: Verify the binary is really universal
+        run: |
+          app="target/universal-apple-darwin/release/bundle/macos/Terminus Launcher.app"
+          binary="$app/Contents/MacOS/Terminus Launcher"
+          ls -l "$app/Contents/MacOS/"
+          archs="$(lipo -archs "$binary")"
+          echo "architectures: $archs"
+          case "$archs" in
+            *x86_64*) ;;
+            *) echo "x86_64 slice is missing" >&2; exit 1 ;;
+          esac
+          case "$archs" in
+            *arm64*) ;;
+            *) echo "arm64 slice is missing" >&2; exit 1 ;;
+          esac
+          codesign -dv --verbose=2 "$app" 2>&1 || echo "(not signed, as expected)"
+          ls -l target/universal-apple-darwin/release/bundle/dmg/
 
-      - name: Upload the DMG
+      - name: Upload the DMG as a build artifact
         uses: actions/upload-artifact@v4
         with:
           name: terminus-macos-universal-unsigned
           path: target/universal-apple-darwin/release/bundle/dmg/*.dmg
           if-no-files-found: error
           retention-days: 30
+
+      # Build artifacts need a GitHub login to download, which testers do not
+      # have, so publish the DMG as a release asset as well. The name says
+      # "unsigned" on purpose: nothing here is notarized.
+      - name: Attach the DMG to a release
+        if: ${{ inputs.release_tag != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          dmg=(target/universal-apple-darwin/release/bundle/dmg/*.dmg)
+          if [ ${#dmg[@]} -ne 1 ]; then
+            echo "expected exactly one DMG, found ${#dmg[@]}" >&2
+            exit 1
+          fi
+          version="${TAG#v}"
+          asset="TerminusLauncher_${version}_macos_universal_unsigned.dmg"
+          cp "${dmg[0]}" "$asset"
+          gh release upload "$TAG" "$asset" --clobber
+          echo "uploaded $asset to $TAG"
+
+      - name: Summarize
+        run: |
+          {
+            echo "### macOS build"
+            echo ""
+            echo "The DMG is unsigned. Testers must clear the quarantine flag once:"
+            echo ""
+            echo '```'
+            echo 'xattr -dr com.apple.quarantine "/Applications/Terminus Launcher.app"'
+            echo '```'
+            echo ""
+            echo "Or right-click the app and choose Open the first time."
+          } >> "$GITHUB_STEP_SUMMARY"
