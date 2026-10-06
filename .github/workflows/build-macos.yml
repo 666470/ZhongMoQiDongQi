@@ -1,15 +1,19 @@
 name: Build macOS
 
 # Manual only. This repository has no upstream release pipeline, and the goal
-# here is one reproducible unsigned macOS bundle to hand to testers.
+# here is a reproducible unsigned macOS bundle to hand to testers.
 #
-# The output is unsigned and not notarized, so macOS quarantines it on first
-# open. Testers clear that with the command in the run summary.
+# The two architectures build in parallel: a universal bundle would compile the
+# whole dependency tree twice in one job (~50 min), while two jobs finish in the
+# time one takes.
+#
+# Everything this produces is unsigned and not notarized, so macOS quarantines
+# it on first open. The run summary carries the command that clears that.
 on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Release to attach the DMG to. Leave empty to only keep the build artifact.
+        description: Release to attach the DMGs to. Leave empty to only keep the build artifacts.
         required: false
         default: v1.9.11
 
@@ -18,9 +22,17 @@ permissions:
 
 jobs:
   macos:
-    name: macOS universal (unsigned)
+    name: macOS ${{ matrix.arch }}
     runs-on: macos-15
     timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            target: aarch64-apple-darwin
+          - arch: x86_64
+            target: x86_64-apple-darwin
     env:
       SQLX_OFFLINE: 'true'
       # The Blockbench skin editor lives in a private submodule this checkout
@@ -42,15 +54,17 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
+      # No `targets:` input here on purpose: this repository pins its toolchain
+      # in rust-toolchain.toml, and targets added through the action land on the
+      # toolchain the action installed rather than the pinned one. cargo then
+      # fails with "Target x86_64-apple-darwin is not installed".
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
-        with:
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          shared-key: terminus-macos-unsigned
+          key: ${{ matrix.target }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -61,37 +75,37 @@ jobs:
       - name: Make the Gradle wrapper executable
         run: chmod +x packages/app-lib/java/gradlew
 
+      - name: Install the build target
+        run: rustup target add ${{ matrix.target }}
+
       - name: Show the JDKs Gradle can pick from
         run: /usr/libexec/java_home -V 2>&1 || true
 
-      - name: Build the universal bundle
-        run: pnpm --filter @modrinth/app tauri build --target universal-apple-darwin
+      - name: Build the bundle
+        run: pnpm --filter @modrinth/app tauri build --target ${{ matrix.target }}
 
-      # A bundle named "universal" is not proof that both slices are in it, so
-      # check the Mach-O header before shipping it.
-      - name: Verify the binary is really universal
+      # A bundle named after an architecture is not proof that it carries it,
+      # so check the Mach-O header before shipping it.
+      - name: Verify the binary carries the expected architecture
         run: |
-          app="target/universal-apple-darwin/release/bundle/macos/Terminus Launcher.app"
+          set -euo pipefail
+          app="target/${{ matrix.target }}/release/bundle/macos/Terminus Launcher.app"
           binary="$app/Contents/MacOS/Terminus Launcher"
           ls -l "$app/Contents/MacOS/"
           archs="$(lipo -archs "$binary")"
           echo "architectures: $archs"
           case "$archs" in
-            *x86_64*) ;;
-            *) echo "x86_64 slice is missing" >&2; exit 1 ;;
-          esac
-          case "$archs" in
-            *arm64*) ;;
-            *) echo "arm64 slice is missing" >&2; exit 1 ;;
+            *"${{ matrix.arch }}"*) echo "expected slice present" ;;
+            *) echo "expected ${{ matrix.arch }}, got: $archs" >&2; exit 1 ;;
           esac
           codesign -dv --verbose=2 "$app" 2>&1 || echo "(not signed, as expected)"
-          ls -l target/universal-apple-darwin/release/bundle/dmg/
+          ls -l "target/${{ matrix.target }}/release/bundle/dmg/"
 
       - name: Upload the DMG as a build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: terminus-macos-universal-unsigned
-          path: target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          name: terminus-macos-${{ matrix.arch }}-unsigned
+          path: target/${{ matrix.target }}/release/bundle/dmg/*.dmg
           if-no-files-found: error
           retention-days: 30
 
@@ -103,15 +117,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.release_tag }}
+          TARGET_TRIPLE: ${{ matrix.target }}
+          ARCH: ${{ matrix.arch }}
         run: |
           set -euo pipefail
-          dmg=(target/universal-apple-darwin/release/bundle/dmg/*.dmg)
+          dmg=(target/"${TARGET_TRIPLE}"/release/bundle/dmg/*.dmg)
           if [ ${#dmg[@]} -ne 1 ]; then
             echo "expected exactly one DMG, found ${#dmg[@]}" >&2
             exit 1
           fi
           version="${TAG#v}"
-          asset="TerminusLauncher_${version}_macos_universal_unsigned.dmg"
+          asset="TerminusLauncher_${version}_macos_${ARCH}_unsigned.dmg"
           cp "${dmg[0]}" "$asset"
           gh release upload "$TAG" "$asset" --clobber
           echo "uploaded $asset to $TAG"
@@ -119,7 +135,7 @@ jobs:
       - name: Summarize
         run: |
           {
-            echo "### macOS build"
+            echo "### macOS ${{ matrix.arch }}"
             echo ""
             echo "The DMG is unsigned. Testers must clear the quarantine flag once:"
             echo ""
