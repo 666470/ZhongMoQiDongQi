@@ -284,7 +284,12 @@ async function loadLatestChannelVersions() {
 	const versions = await Promise.all(
 		(['release', 'beta'] as const).map(async (channel) => {
 			try {
-				const response = await tauriFetch(`https://update.srasy.art/latest?channel=${channel}`)
+				// Releases live on GitHub now. GitHub has no per-channel
+				// metadata, so only the release channel reports a version.
+				if (channel !== 'release') return [channel, undefined] as const
+				const response = await tauriFetch(
+					'https://gh-proxy.com/https://github.com/666470/ZhongMoQiDongQi/releases/latest/download/latest.json',
+				)
 				if (!response.ok) return [channel, undefined] as const
 				const payload = (await response.json()) as { version?: string }
 				return [channel, payload.version] as const

@@ -1,51 +1,36 @@
 ﻿Unicode true
-!include "MUI2.nsh"
-!include "LogicLib.nsh"
-
-Name "终末启动器 在线安装"
+Name "终末启动器 在线安装程序"
 OutFile "D:\devtools\webinstaller-out\TerminusWebSetup.exe"
+InstallDir "$TEMP\TerminusWebSetup"
 RequestExecutionLevel user
 ShowInstDetails show
 
-; 唯一的下载源。发布新版本只改这一行。
-!define DL_URL "https://github.com/666470/ZhongMoQiDongQi/releases/download/v1.9.7/TerminusLauncher_1.9.7_x64-setup.exe"
+; 唯一的下载源（走国内可用的 GitHub 加速通道，直连 github.com 在部分网络下不通）。
+; 发布新版本只改这一行。
+!define DL_URL "https://gh-proxy.com/https://github.com/666470/ZhongMoQiDongQi/releases/download/v1.9.11/TerminusLauncher_1.9.11_x64-setup.exe"
 !define REL_PAGE "https://github.com/666470/ZhongMoQiDongQi/releases/latest"
 
 Var TargetFile
-Var ExitCode
 
-!insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_INSTFILES
-!insertmacro MUI_LANGUAGE "SimpChinese"
+Function .onInit
+  InitPluginsDir
+  StrCpy $TargetFile "$PLUGINSDIR\TerminusLauncherSetup.exe"
+FunctionEnd
 
-Section "下载并安装"
-  StrCpy $TargetFile "$TEMP\TerminusLauncher-setup.exe"
-  DetailPrint "下载地址：${DL_URL}"
-  DetailPrint "正在下载安装包（约 64 MB），请稍候…"
-  ; Windows 10 1803+ 自带 curl.exe，先走它；老系统回落到 PowerShell。
+Page instfiles
+
+Section "下载并安装" SEC_MAIN
+  DetailPrint "正在从国内加速通道下载安装包，请稍候..."
   nsExec::ExecToLog '"$SYSDIR\curl.exe" -L --fail --retry 3 --connect-timeout 20 -o "$TargetFile" "${DL_URL}"'
-  Pop $ExitCode
-  StrCmp $ExitCode "0" download_ok
-    DetailPrint "curl 失败（$ExitCode），改用 PowerShell 重试…"
-    nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -Command "$$ProgressPreference=0; Invoke-WebRequest -Uri '${DL_URL}' -OutFile '$TargetFile' -UseBasicParsing"'
-    Pop $ExitCode
-  download_ok:
-  ${If} $ExitCode != 0
-    MessageBox MB_ICONSTOP|MB_YESNO "下载失败（代码 $ExitCode）。$\r$\n$\r$\n常见原因：网络到 GitHub 不稳定。$\r$\n$\r$\n点“是”打开发布页手动下载，点“否”退出。" IDYES open_page
-    Abort "下载失败"
-  ${EndIf}
-  ${IfNot} ${FileExists} "$TargetFile"
-    MessageBox MB_ICONSTOP|MB_YESNO "没有拿到安装包。$\r$\n$\r$\n点“是”打开发布页手动下载，点“否”退出。" IDYES open_page
-    Abort "下载失败"
-  ${EndIf}
-  Goto run_setup
-  open_page:
-    ExecShell "open" "${REL_PAGE}"
-    Abort "已打开发布页"
-  run_setup:
-  DetailPrint "下载完成，正在启动安装程序…"
-  ExecWait '"$TargetFile"' $0
-  DetailPrint "安装程序结束，返回码 $0"
-  Delete "$TargetFile"
-SectionEnd
+  Pop $0
+  IfFileExists "$TargetFile" 0 failed
+  DetailPrint "下载完成，正在启动安装程序..."
+  ExecWait "$TargetFile"
+  Goto done
 
+  failed:
+  MessageBox MB_YESNO|MB_ICONEXCLAMATION "下载失败（网络不通或加速通道暂不可用）。$\r$\n是否打开发布页手动下载？" IDNO done
+  ExecShell "open" "${REL_PAGE}"
+
+  done:
+SectionEnd

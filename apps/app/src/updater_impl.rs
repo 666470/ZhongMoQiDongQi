@@ -15,7 +15,14 @@ use theseus::{
 use tokio::time::Instant;
 use url::Url;
 
-const UPDATE_SERVER_LATEST_URL: &str = "https://update.srasy.art/latest";
+// Open updates are hosted on GitHub now: every release carries a latest.json
+// asset (Tauri updater schema) that the updater plugin reads directly. These
+// constants override the endpoint baked into the bundle config, which is why
+// editing tauri.windows.conf.json alone was not enough.
+const UPDATE_SERVER_LATEST_URL: &str =
+    "https://gh-proxy.com/https://github.com/666470/ZhongMoQiDongQi/releases/latest/download/latest.json";
+// Still the old host: these two only serve the Linux/apt .deb catalog, which
+// GitHub has no equivalent for. The Windows path never touches them.
 const UPDATE_SERVER_API: &str = "https://update.srasy.art/api/versions";
 const UPDATE_SERVER_BASE: &str = "https://update.srasy.art/";
 

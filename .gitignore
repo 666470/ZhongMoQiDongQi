@@ -101,7 +101,9 @@ target/*
 *.sqlite3
 
 plugins-workspace/*
-apps/app/resources/blockbench-skin/
+
+# apps/app/resources/blockbench-skin/ used to be ignored here. It is tracked
+# now because the release CI bundles it and has no other way to obtain it.
 
 # Oh My OpenCode
 .omo/
@@ -125,5 +127,8 @@ apps/app/resources/blockbench-skin/
 start-dev.ps1
 
 # GitHub refuses OAuth-App pushes touching workflow paths unless the token
-# carries the workflow scope, so CI files stay untracked here.
-.github/workflows/
+# carries the workflow scope, so most CI files stay untracked here. Only the
+# self-contained macOS build is tracked: the upstream pipelines depend on
+# secrets and services this fork does not have.
+.github/workflows/*
+!.github/workflows/build-macos.yml

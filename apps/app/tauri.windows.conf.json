@@ -1,9 +1,11 @@
 {
 	"build": {
-		"beforeBuildCommand": "pnpm turbo run build --filter=@modrinth/app-frontend && cargo build --release --package axolotl-installer-ui"
+		"beforeBuildCommand": "pnpm turbo run build --filter=@modrinth/app-frontend && cargo build --release --package axolotl-installer-ui",
+		"features": ["updater"]
 	},
 	"bundle": {
 		"targets": ["nsis"],
+		"createUpdaterArtifacts": true,
 		"windows": {
 			"nsis": {
 				"installMode": "currentUser",
@@ -13,6 +15,15 @@
 				"installerIcon": "./icons/icon.ico",
 				"sidebarImage": "./nsis/assets/sidebar.bmp",
 				"headerImage": "./nsis/assets/header.bmp"
+			}
+		}
+	},
+	"plugins": {
+		"updater": {
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVGQUQ2ODZERTM3MTRCMApSV1N3RkRmZWh0YjZCVm5XOUZlMkd0WVNUUGdQdUU4Snc5bGxvRHRBYVR0UzU5TlI0aVlKeWZDYQo=",
+			"endpoints": ["https://github.com/666470/ZhongMoQiDongQi/releases/latest/download/latest.json"],
+			"windows": {
+				"installMode": "quiet"
 			}
 		}
 	}
