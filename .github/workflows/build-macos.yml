@@ -65,6 +65,9 @@ jobs:
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           key: ${{ matrix.target }}
+          # A 30 minute compile is wasted work if the run then dies during
+          # bundling, so keep the cache even when the job fails.
+          cache-on-failure: true
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
