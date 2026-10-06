@@ -268,7 +268,22 @@ const messages = defineMessages({
 	},
 	attribution: {
 		id: 'app.settings.about.attribution',
-		defaultMessage: 'Terminus Launcher is a modified version of the open-source Modrinth codebase.',
+		defaultMessage:
+			'Terminus Launcher is a derivative work built on Axolotl Launcher, which is itself a modified version of the open-source Modrinth codebase.',
+	},
+	originalAuthors: {
+		id: 'app.settings.about.original-authors',
+		defaultMessage: 'Original authors',
+	},
+	originalAuthorsAxolotl: {
+		id: 'app.settings.about.original-authors-axolotl',
+		defaultMessage:
+			'Upstream project this launcher is derived from. Developed by Garbage Human Studio and produced by Mystic Stars; modifications copyright © 2026 Garbage Human Studio.',
+	},
+	originalAuthorsModrinth: {
+		id: 'app.settings.about.original-authors-modrinth',
+		defaultMessage:
+			'The original work Axolotl Launcher builds on. Copyright remains with Rinth, Inc. and the original contributors.',
 	},
 	notAffiliated: {
 		id: 'app.settings.about.not-affiliated',
@@ -441,8 +456,8 @@ const projectLinks = [
 				</a>
 
 				<button
-					type="button"
 					v-if="TerminusBrandConfig.qqGroupNumber"
+					type="button"
 					:disabled="copied"
 					:aria-label="
 						copied ? formatMessage(messages.copiedQqGroup) : formatMessage(messages.copyQqGroup)
@@ -550,6 +565,31 @@ const projectLinks = [
 						{{ formatMessage(messages.originalSource) }}
 						<ExternalIcon class="size-4 text-[var(--color-text-tertiary)]" />
 					</a>
+				</div>
+			</div>
+		</SettingsSection>
+
+		<SettingsSection>
+			<template #header>
+				<h3
+					class="m-0 flex items-center gap-2 text-base font-semibold text-[var(--color-text-primary)]"
+				>
+					<UsersIcon class="size-5 text-[var(--color-text-tertiary)]" />
+					{{ formatMessage(messages.originalAuthors) }}
+				</h3>
+			</template>
+			<div class="flex flex-col gap-3 p-4">
+				<div class="flex min-w-0 flex-col gap-1 rounded-xl bg-surface-4 p-4">
+					<span class="font-semibold text-[var(--color-text-primary)]">Axolotl Launcher</span>
+					<span class="text-sm text-[var(--color-text-tertiary)]">
+						{{ formatMessage(messages.originalAuthorsAxolotl) }}
+					</span>
+				</div>
+				<div class="flex min-w-0 flex-col gap-1 rounded-xl bg-surface-4 p-4">
+					<span class="font-semibold text-[var(--color-text-primary)]">Modrinth</span>
+					<span class="text-sm text-[var(--color-text-tertiary)]">
+						{{ formatMessage(messages.originalAuthorsModrinth) }}
+					</span>
 				</div>
 			</div>
 		</SettingsSection>

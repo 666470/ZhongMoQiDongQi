@@ -7629,7 +7629,7 @@
     "message": "支持项目持续开发"
   },
   "app.settings.about.attribution": {
-    "message": "终末启动器 是开源项目 Modrinth 代码库的修改版本。"
+    "message": "终末启动器 是基于 Axolotl Launcher 的二次创作；Axolotl Launcher 本身是开源项目 Modrinth 代码库的修改版本。"
   },
   "app.settings.about.community-support": {
     "message": "项目与社区"
@@ -7729,6 +7729,15 @@
   },
   "app.settings.about.not-affiliated": {
     "message": "Modrinth 是 Rinth, Inc. 的商标。终末启动器 与 Rinth, Inc. 无关联，亦未获得其认可。"
+  },
+  "app.settings.about.original-authors": {
+    "message": "原创作者"
+  },
+  "app.settings.about.original-authors-axolotl": {
+    "message": "本启动器所基于的上游项目。由 Garbage Human Studio 开发、Mystic Stars 制作；改动部分版权 © 2026 Garbage Human Studio。"
+  },
+  "app.settings.about.original-authors-modrinth": {
+    "message": "Axolotl Launcher 所基于的原始作品。版权归 Rinth, Inc. 及原贡献者所有。"
   },
   "app.settings.about.original-source": {
     "message": "Modrinth 原始源代码"

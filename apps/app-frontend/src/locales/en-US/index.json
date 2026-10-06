@@ -7638,7 +7638,7 @@
     "message": "Help support continued development"
   },
   "app.settings.about.attribution": {
-    "message": "Terminus Launcher is a modified version of the open-source Modrinth codebase."
+    "message": "Terminus Launcher is a derivative work built on Axolotl Launcher, which is itself a modified version of the open-source Modrinth codebase."
   },
   "app.settings.about.community-support": {
     "message": "Project & community"
@@ -7738,6 +7738,15 @@
   },
   "app.settings.about.not-affiliated": {
     "message": "Modrinth is a trademark of Rinth, Inc. Terminus Launcher is not affiliated with or endorsed by Rinth, Inc."
+  },
+  "app.settings.about.original-authors": {
+    "message": "Original authors"
+  },
+  "app.settings.about.original-authors-axolotl": {
+    "message": "Upstream project this launcher is derived from. Developed by Garbage Human Studio and produced by Mystic Stars; modifications copyright © 2026 Garbage Human Studio."
+  },
+  "app.settings.about.original-authors-modrinth": {
+    "message": "The original work Axolotl Launcher builds on. Copyright remains with Rinth, Inc. and the original contributors."
   },
   "app.settings.about.original-source": {
     "message": "Original Modrinth source"
